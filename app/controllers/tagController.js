@@ -1,4 +1,4 @@
-const { Tag } = require("../models");
+const { Video, Tag } = require("../models");
 
 module.exports = {
   createOne: async (req, res, next) => {
@@ -13,6 +13,7 @@ module.exports = {
   },
   deleteOne: async (req, res, next) => {
     const { id } = req.params;
+
     try {
       // Try to fetch tag
       const tagToDelete = await Tag.findByPk(id);
@@ -23,6 +24,24 @@ module.exports = {
       // If exists destroy and return response 204 too
       tagToDelete.destroy();
       res.status(204).json();
+    } catch (error) {
+      next(error);
+    }
+  },
+  getVideosByTagId: async (req, res, next) => {
+    const { id } = req.params;
+    try {
+      const videos = await Video.findAll({
+        include: {
+          model: Tag,
+          as: "tags",
+          where: {
+            id
+          }
+        }
+      });
+      // If no video is found send back empty array
+      res.json(videos);
     } catch (error) {
       next(error);
     }
