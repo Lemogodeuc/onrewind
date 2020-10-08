@@ -1,0 +1,27 @@
+{
+  "name": "onrewind",
+  "version": "1.0.0",
+  "description": "technical test",
+  "main": "index.js",
+  "scripts": {
+    "start": "node ./www",
+    "dev": "nodemon ./www"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Lemogodeuc/onrewind.git"
+  },
+  "author": "Quentin Lemogodeuc",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Lemogodeuc/onrewind/issues"
+  },
+  "homepage": "https://github.com/Lemogodeuc/onrewind#readme",
+  "dependencies": {
+    "dotenv": "^8.2.0",
+    "express": "^4.17.1",
+    "pg": "^8.4.0",
+    "sequelize": "^6.3.5",
+    "uuid": "^8.3.1"
+  }
+}
