@@ -25,6 +25,20 @@ module.exports = {
       next(error);
     }
   },
+  getAllWithPagination: async (req, res, next) => {
+    try {
+      const { offset, limit } = req.params;
+      // Retrieve all videos with their tags
+      const videos = await Video.findAll({
+        include: ["tags"],
+        limit,
+        offset
+      });
+      res.json(videos);
+    } catch (error) {
+      next(error);
+    }
+  },
   createOne: async (req, res, next) => {
     const url = uuidv4();
     const { name, description } = req.body;
