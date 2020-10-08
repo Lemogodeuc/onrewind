@@ -12,12 +12,14 @@ TAGS: id, value
 
 - Create Role
 
+example: 
 ```bash
 CREATE ROLE "onrewind" WITH LOGIN PASSWORD '%/#tb8Jg5#.zLtVV';
 ```
 
 - Create database
 
+example: 
 ```bash
 CREATE DATABASE "onrewind" OWNER "onrewind";
 ```
