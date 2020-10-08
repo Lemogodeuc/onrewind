@@ -26,8 +26,13 @@ module.exports = {
     }
   },
   createOne: async (req, res, next) => {
-    const { name, description } = req.body;
     const url = uuidv4();
+    const { name, description } = req.body;
+
+    if (!name) {
+      return res.status(409).json({ error: "Field 'name' is missing" });
+    }
+
     try {
       // Create new video ressource with generated url
       const newVideo = await Video.create({ name, description, url });
@@ -60,7 +65,7 @@ module.exports = {
       // Update, save and return
       Object.assign(videoToUpdate, body);
       await videoToUpdate.save();
-      res.json(videoToUpdate);
+      res.status(204).json();
     } catch (error) {
       next(error);
     }
