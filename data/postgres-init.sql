@@ -1,5 +1,14 @@
+-- CREATE DATABASE onrewind_test
+--     WITH 
+--     OWNER = onrewind
+--     ENCODING = 'UTF8'
+--     LC_COLLATE = 'en_US.utf8'
+--     LC_CTYPE = 'en_US.utf8'
+--     TABLESPACE = pg_default
+--     CONNECTION LIMIT = -1;
+
 -- Create tables
-CREATE TABLE "videos" (
+CREATE TABLE IF NOT EXISTS "videos" (
   "id" INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   "name" TEXT NOT NULL,
   "description" TEXT NULL,
@@ -8,18 +17,18 @@ CREATE TABLE "videos" (
   "updated_at" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE "tags" (
+CREATE TABLE IF NOT EXISTS "tags" (
   "id" INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   "value" TEXT UNIQUE NOT NULL
 );
 
-CREATE TABLE "_m2m_videos_tags" (
+CREATE TABLE IF NOT EXISTS "_m2m_videos_tags" (
   "id" INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   "video_id" INT NOT NULL REFERENCES "videos"("id") ON DELETE CASCADE,
   "tag_id" INT NOT NULL REFERENCES "tags"("id") ON DELETE CASCADE
 );
 
--- Seeding some datas
+-- Seeds
 INSERT INTO "videos"("name", "description", "url") VALUES
 ('France-Ukraine', 'Le résumé et les notes', 'france-ukraine-10-08-2020'),
 ('Lyon-Nimes', 'Le résumé et les notes', 'lyon-nimes-09-18-2020'),

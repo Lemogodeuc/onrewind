@@ -1,159 +1,152 @@
-require("dotenv").config();
-process.env.NODE_ENV = "test";
-
-const { Video, Tag } = require("../app/models");
+const { createVideoWithTag, createVideoWithNoTag, getVideoPayload, flushDb } = require("./utils");
 
 const chai = require("chai");
+const { expect } = chai;
+const should = chai.should();
 const chaiHttp = require("chai-http");
 const server = require("../index");
-const should = chai.should();
-
 chai.use(chaiHttp);
 
-describe("Testing Videos", () => {
-  /*
-   * Testing GET /videos
-   */
-  describe("/GET videos", () => {
-    it("should get all videos", done => {
-      chai
-        .request(server)
-        .get("/videos")
-        .end((err, res) => {
-          res.should.have.status(200);
-          res.body.should.be.a("array");
-          done();
-        });
-    });
-    it("should get one videos", done => {
-      chai
-        .request(server)
-        .get("/videos/8")
-        .end((err, res) => {
-          res.should.have.status(200);
-          res.body.should.be.a("object");
-          done();
-        });
-    });
+describe("Testing Videos routes", () => {
+  before(async () => {
+    await createVideoWithNoTag();
+    await createVideoWithTag({ name: "Revivez le Super Bowl" }, { value: "Football US" });
   });
 
-  /*
-   * Testing POST /videos
+  /**
+   * GET /videos
    */
-  describe("/POST video", () => {
-    it("it should not POST a video without name field", done => {
-      const video = {
-        description: "Test de description"
-      };
-      chai
-        .request(server)
-        .post("/videos")
-        .send(video)
-        .end((err, res) => {
-          res.should.have.status(409);
-          res.body.should.be.a("object");
-          res.body.should.have.property("error");
-          done();
-        });
+  describe("1 - GET /videos", () => {
+    it("GET /videos - should get a list of videos", async () => {
+      const res = await chai.request(server).get("/videos/");
+      expect(res.status, "Unexpected status code").to.equal(200);
+      expect(res.body, "Should be an array").to.be.an("array");
+      expect(res.body, "Array shouldn't be empty").to.be.an("array").that.is.not.empty;
     });
-    it("it should create a new video", done => {
-      const video = {
-        name: "On rewind tout",
-        description: "Test de description"
-      };
-      chai
-        .request(server)
-        .post("/videos")
-        .send(video)
-        .end((err, res) => {
-          res.should.have.status(201);
-          res.body.should.be.a("object");
-          res.body.should.have.property("id");
-          res.body.should.have.property("name");
-          res.body.should.have.property("description");
-          res.body.should.have.property("createdAt");
-          res.body.should.have.property("updatedAt");
-          done();
-        });
-    });
-  });
-  describe("/POST video", async () => {
-    let video;
 
-    beforeEach(done => {
-      Video.findAll({ raw: true, order: [["id", "DESC"]], limit: 1 }).then(result => {
-        video = result;
-        done();
+    it("GET /videos/:id - should get 404 Not Found", async () => {
+      const res = await chai.request(server).get("/videos/999");
+      res.should.have.status(404);
+      res.body.should.be.a("object");
+      res.body.should.have.property("code");
+      res.body.should.have.property("type");
+      res.body.should.have.property("details");
+    });
+
+    it("GET /videos/:id - should get one video with no tags", async () => {
+      const res = await chai.request(server).get("/videos/1");
+      res.should.have.status(200);
+      res.body.should.be.a("object");
+      res.body.should.have.property("id");
+      res.body.should.have.property("name");
+      res.body.should.have.property("description");
+      res.body.should.have.property("tags");
+      res.body.tags.should.be.a("array").to.be.empty;
+      res.body.should.have.property("createdAt");
+      res.body.should.have.property("updatedAt");
+    });
+
+    it("GET /videos/:id - should get one video with at least one tag", async () => {
+      const res = await chai.request(server).get("/videos/2");
+      res.should.have.status(200);
+      res.body.should.be.a("object");
+      res.body.should.have.property("id");
+      res.body.should.have.property("name");
+      res.body.should.have.property("description");
+      res.body.should.have.property("tags");
+      res.body.tags.should.be.a("array").to.be.not.empty;
+      res.body.tags.should.be.a("array");
+      res.body.tags.forEach(object => {
+        object.should.have.property("id").that.is.a("number");
+        object.should.have.property("value").that.is.a("string");
+        object.should.have.property("_m2m_videos_tags").that.is.a("object");
       });
-    });
-    it("it should update a new video", done => {
-      const { id } = video[0];
-      const update = {
-        name: "name",
-        description: "description"
-      };
-      chai
-        .request(server)
-        .post(`/videos/${id}`)
-        .send(update)
-        .end((err, res) => {
-          res.should.have.status(204);
-          res.noContent;
-          done();
-        });
+      res.body.should.have.property("createdAt");
+      res.body.should.have.property("updatedAt");
     });
   });
 
-  /*
-   * Testing POST tag to /videos
+  /**
+   * POST /videos
    */
-  describe("/POST video/:videoId/tag/:tagId", () => {
-    let video;
-    let tag;
-    before(async () => {
-      const fetchedVideo = await Video.findAll({ order: [["id", "ASC"]], limit: 1 });
-      if (fetchedVideo[0] && fetchedVideo[0].id === 1) {
-        fetchedVideo[0].destroy();
-      }
-      tag = await Tag.findAll({ raw: true, order: [["id", "DESC"]], limit: 1 });
-    });
-    it("it should NOT add a new tag to a not found video", done => {
-      chai
+  describe("2 - POST /videos", async () => {
+    it("POST /videos/ - should create a video", async () => {
+      const res = await chai
         .request(server)
-        .post(`/videos/1/tags/${tag.id}`)
-        .end((err, res) => {
-          res.should.have.status(404);
-          done();
-        });
+        .post("/videos/")
+        .send(await getVideoPayload());
+      // console.log(res.body);
+      res.should.have.status(201);
+      res.body.should.be.a("object");
+      res.body.should.have.property("id");
+      res.body.should.have.property("name");
+      res.body.should.have.property("description");
+      res.body.should.have.property("createdAt");
+      res.body.should.have.property("updatedAt");
+    });
+    it("POST /videos/ - should not create a video without a name", async () => {
+      const payload = await getVideoPayload();
+      delete payload.name;
+      const res = await chai.request(server).post("/videos/").send(payload);
+      res.should.have.status(400);
+      res.body.should.be.a("object");
+      res.body.should.have.property("code");
+      res.body.should.have.property("type");
+      res.body.should.have.property("details");
     });
   });
-  describe("/POST video/:videoId/tag/:tagId", async () => {
-    let video;
-    let tag;
-    beforeEach(async () => {
-      video = await Video.findAll({ raw: true, order: [["id", "DESC"]], limit: 1 });
-      tag = await Tag.findAll({ raw: true, order: [["id", "DESC"]], limit: 1 });
+
+  /**
+   * PUT /videos
+   */
+  describe("3 - PUT /videos", () => {
+    it("PUT /videos/:id - should update a video", async () => {
+      const payload = await getVideoPayload();
+      const res = await chai.request(server).put("/videos/1").send(payload);
+      res.should.have.status(204);
     });
-    it("it should add a tag to a video", done => {
-      chai
-        .request(server)
-        .post(`/videos/${video[0].id}/tags/${tag[0].id}`)
-        .end((err, res) => {
-          res.should.have.status(204);
-          res.noContent;
-          done();
-        });
+    it("PUT /videos/:id - should not update a video with not valid id", async () => {
+      const payload = await getVideoPayload();
+      const res = await chai.request(server).put("/videos/999").send(payload);
+      res.should.have.status(404);
+      res.body.should.be.a("object");
+      res.body.should.have.property("code");
+      res.body.should.have.property("type");
+      res.body.should.have.property("details");
     });
-    it("it should remove tag from a video", done => {
-      // console.log("video ******", video);
-      chai
-        .request(server)
-        .delete(`/videos/${video[0].id}/tags/${tag[0].id}`)
-        .end((err, res) => {
-          res.should.have.status(204);
-          res.noContent;
-          done();
-        });
+    it("PUT /videos/:id - should not update a video with an existing url", async () => {
+      const { body } = await chai.request(server).get("/videos/2");
+      delete body.tags;
+      const res = await chai.request(server).put("/videos/1").send(body);
+      res.should.have.status(400);
     });
+  });
+
+  /**
+   * DELETE /videos
+   */
+  describe("4 - DELETE /videos", () => {
+    it("DELETE /videos/:id - should delete video", async () => {
+      const res = await chai.request(server).delete("/videos/1");
+      res.should.have.status(204);
+    });
+
+    it("GET /videos/:id - should not get deleted video", async () => {
+      const res = await chai.request(server).get("/videos/1");
+      res.should.have.status(404);
+      res.body.should.be.a("object");
+      res.body.should.have.property("code");
+      res.body.should.have.property("type");
+      res.body.should.have.property("details");
+    });
+
+    it("DELETE /videos/:id - should not send an error if video doesn't exist", async () => {
+      const res = await chai.request(server).delete("/videos/999");
+      res.should.have.status(204);
+    });
+  });
+
+  after(() => {
+    flushDb();
   });
 });
