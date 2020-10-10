@@ -19,7 +19,15 @@ USERS(id, email, password)
 _m2m_USERS_VIDEOS_bookmarks(id, user_id, video_id)
 ```
 
-# To run the app
+# Running the app with Docker
+
+Please run following command
+
+```bash
+docker-compose up -d
+```
+
+# Running the app without Docker
 
 ## Install dependencies
 

@@ -1,19 +1,31 @@
 const { Sequelize } = require("sequelize");
 
-const database = process.env.DATABASE_NAME;
-const password = process.env.DATABASE_PASSWORD;
-const username = process.env.DATABASE_USERNAME;
+const { DATABASE_PASSWORD, DATABASE_USER, DATABASE_HOST } = process.env;
 
-const sequelize = new Sequelize(database, username, password, {
+const DATABASE_DB = process.env.NODE_ENV === "test" ? "onrewind_test" : process.env.DATABASE_DB;
+
+const sequelize = new Sequelize(DATABASE_DB, DATABASE_USER, DATABASE_PASSWORD, {
   dialect: "postgres",
-  host: "localhost",
+  host: DATABASE_HOST,
   pool: {
     max: 5,
     min: 0,
     acquire: 30000,
     idle: 10000
   },
-  logging: false
+  sync: true
 });
+
+(async () => {
+  try {
+    if (process.env === "test") {
+      await sequelize.sync({ force: true, match: /_test$/ });
+    } else {
+      await sequelize.sync();
+    }
+  } catch (error) {
+    console.log(error);
+  }
+})();
 
 module.exports = sequelize;
