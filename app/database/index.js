@@ -1,6 +1,6 @@
 const { Sequelize } = require("sequelize");
 
-const { DATABASE_PASSWORD, DATABASE_USER, DATABASE_HOST } = process.env;
+const { DATABASE_PASSWORD, DATABASE_USER } = process.env;
 
 const DATABASE_DB = process.env.NODE_ENV === "test" ? "onrewind_test" : process.env.DATABASE_DB;
 

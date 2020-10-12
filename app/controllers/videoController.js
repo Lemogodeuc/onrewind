@@ -1,5 +1,6 @@
 const { Video, Tag } = require("../models");
 const { v4: uuidv4 } = require("uuid");
+const { NOT_FOUND } = require("../constants");
 
 module.exports = {
   getOne: async (req, res, next) => {
@@ -9,6 +10,12 @@ module.exports = {
       const video = await Video.findByPk(id, {
         include: ["tags"]
       });
+
+      if (!video) {
+        NOT_FOUND.message = `Unaible to find video with ID '${id}'`;
+        next(NOT_FOUND);
+      }
+
       res.json(video);
     } catch (error) {
       next(error);
@@ -43,10 +50,6 @@ module.exports = {
     const url = uuidv4();
     const { name, description } = req.body;
 
-    if (!name) {
-      return res.status(409).json({ error: "Field 'name' is missing" });
-    }
-
     try {
       // Create new video ressource with generated url
       const newVideo = await Video.create({ name, description, url });
@@ -55,7 +58,7 @@ module.exports = {
       next(error);
     }
   },
-  updateOne: async (req, res) => {
+  updateOne: async (req, res, next) => {
     try {
       const { id } = req.params;
       const { body } = req;
@@ -73,7 +76,8 @@ module.exports = {
 
       // Send 404 if not found
       if (!videoToUpdate) {
-        res.status(404).json({ err: "Video not found" });
+        NOT_FOUND.message = `Unaible to find video with ID '${id}'`;
+        next(NOT_FOUND);
       }
 
       // Update, save and return
@@ -89,7 +93,7 @@ module.exports = {
     try {
       // Try to get and detroy ressource. If doesn't exists send back status 204 too
       const videoToDelete = await Video.findByPk(id);
-      videoToDelete.destroy();
+      if (videoToDelete) videoToDelete.destroy();
       res.status(204).json();
     } catch (error) {
       next(error);
