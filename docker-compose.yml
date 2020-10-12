@@ -1,0 +1,23 @@
+version: "3.7"
+
+services:
+  db:
+    image: postgres:alpine
+    volumes:
+      - ./data/postgres-init.sql:/docker-entrypoint-initdb.d/postgres-init.sql
+    environment:
+      - POSTGRES_USER=${DATABASE_USER}
+      - POSTGRES_PASSWORD=${DATABASE_PASSWORD}
+      - POSTGRES_DB=${DATABASE_DB}
+    ports:
+      - "5433:5432"
+  app:
+    build: ./
+    command: sh -c "npm install && npm run dev"
+    depends_on:
+      - db
+    ports:
+      - "3000:3000"
+    env_file: .env
+    volumes:
+      - "./:/app"

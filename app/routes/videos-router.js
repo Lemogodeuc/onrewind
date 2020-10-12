@@ -7,7 +7,7 @@ router.get("/", videoController.getAll);
 router.get("/:offset(\\d+)/:limit(\\d+)", videoController.getAllWithPagination);
 router.get("/:id(\\d+)", videoController.getOne);
 router.post("/", videoController.createOne);
-router.post("/:id(\\d+)", videoController.updateOne);
+router.put("/:id(\\d+)", videoController.updateOne);
 router.delete("/:id(\\d+)", videoController.deleteOne);
 
 // Add or Remove tags from Videos
